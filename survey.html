@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맞춤형 건강 분석</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 최신 버전 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #F8F7F4;
+        }
+       .survey-card {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            will-change: opacity, transform;
+        }
+       .hidden-card {
+            opacity: 0;
+            transform: translateY(20px);
+            position: absolute;
+            pointer-events: none;
+        }
+       .visible-card {
+            opacity: 1;
+            transform: translateY(0);
+            position: static;
+        }
+       .input-focus:focus {
+            outline: none;
+            border-color: #A79277;
+            box-shadow: 0 0 0 2px #EAD8C0;
+        }
+       .radio-checked:checked {
+            background-color: #A79277;
+            border-color: #A79277;
+        }
+       .radio-checked:checked:hover {
+            background-color: #A79277;
+            border-color: #A79277;
+        }
+       .radio-checked:focus {
+            box-shadow: 0 0 0 2px #EAD8C0;
+        }
+       .btn-primary {
+            background-color: #A79277;
+            color: #FFFFFF;
+            transition: background-color 0.3s;
+        }
+       .btn-primary:hover {
+            background-color: #8E7962;
+        }
+       .btn-primary:disabled {
+            background-color: #D4C1A9;
+            cursor: not-allowed;
+        }
+       .btn-secondary {
+            background-color: #EAD8C0;
+            color: #52473A;
+            transition: background-color 0.3s;
+        }
+       .btn-secondary:hover {
+            background-color: #D4C1A9;
+        }
+       .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 180px;
+            max-height: 200px;
+        }
+       .health-goal-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            background-color: #fff;
+            text-align: center;
+            min-height: 120px;
+        }
+       .health-goal-item:hover {
+            border-color: #A79277;
+            box-shadow: 0 0 0 2px #EAD8C0;
+        }
+       .health-goal-item.selected {
+            border-color: #A79277;
+            background-color: #F8F7F4;
+            box-shadow: 0 0 0 2px #A79277;
+        }
+       .health-goal-item .icon {
+            font-size: 2.5rem;
+            color: #A79277;
+            margin-bottom: 0.5rem;
+        }
+       .health-goal-item .text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #374151;
+        }
+       .health-goal-rank {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #A79277;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        /* 위건강 아이콘 특별 스타일 */
+        .stomach-health-icon {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900 !important;
+        }
+        
+        .stomach-health-icon::before {
+            content: "\f965" !important; /* stomach 아이콘 */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <main class="w-full max-w-lg mx-auto p-4 sm:p-6">
+        <div id="survey-container" class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            
+            <form id="healthForm" class="relative">
+
+                <div id="step-0" class="survey-card visible-card p-6 sm:p-8 text-center">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">나만을 위한 건강 분석</h1>
+                    <p class="text-gray-600 mb-6 sm:mb-8">몇 가지 간단한 질문에 답하고, 맞춤형 건강 분석과 추천을 받아보세요.</p>
+                    <button type="button" id="startButton" class="w-full py-3 px-4 rounded-lg font-bold text-lg btn-primary">시작하기</button>
+                </div>
+
+                <div id="step-1" class="survey-card hidden-card p-6 sm:p-8">
+                    <label for="userName" class="block text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">이름을 알려주세요.</label>
+                    <input type="text" id="userName" name="userName" class="w-full p-3 border-2 border-gray-200 rounded-lg text-center text-lg input-focus" placeholder="예: 김루템" required>
+                    <button type="button" data-next="2" class="w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg btn-primary">다음</button>
+                </div>
+
+                <div id="step-2" class="survey-card hidden-card p-6 sm:p-8">
+                    <h2 id="welcomeMessage" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center"></h2>
+                    <label for="birthYear" class="block text-center text-gray-600 mb-2">출생연도는 언제인가요?</label>
+                    <input type="number" id="birthYear" name="birthYear" class="w-full p-3 border-2 border-gray-200 rounded-lg text-center text-lg input-focus" placeholder="4자리 숫자 (예: 1995)" min="1900" max="2025" required>
+                    <button type="button" data-next="3" class="w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg btn-primary">다음</button>
+                </div>
+
+                <div id="step-3" class="survey-card hidden-card p-6 sm:p-8">
+                    <h2 id="genderQuestion" class="text-xl sm:text-2xl font-bold text-gray-800 mb-6 text-center"></h2>
+                    <fieldset class="space-y-4">
+                        <div class="flex items-center">
+                            <input type="radio" id="male" name="gender" value="male" class="w-5 h-5 mr-3 radio-checked" required>
+                            <label for="male" class="text-lg text-gray-700">남성</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="female" name="gender" value="female" class="w-5 h-5 mr-3 radio-checked">
+                            <label for="female" class="text-lg text-gray-700">여성</label>
+                        </div>
+                    </fieldset>
+                    <button type="button" data-next="4" class="w-full mt-8 py-3 px-4 rounded-lg font-bold text-lg btn-primary">다음</button>
+                </div>
+
+                <div id="step-4" class="survey-card hidden-card p-6 sm:p-8">
+                    <h2 id="heightQuestion" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center"></h2>
+                    <label for="height" class="block text-center text-gray-600 mb-2">단위는 cm 입니다.</label>
+                    <input type="number" id="height" name="height" class="w-full p-3 border-2 border-gray-200 rounded-lg text-center text-lg input-focus" placeholder="예: 175" min="50" max="250" required>
+                    <button type="button" data-next="5" class="w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg btn-primary">다음</button>
+                </div>
+
+                <div id="step-5" class="survey-card hidden-card p-6 sm:p-8">
+                    <h2 id="weightQuestion" class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center"></h2>
+                    <label for="weight" class="block text-center text-gray-600 mb-2">단위는 kg 입니다.</label>
+                    <input type="number" id="weight" name="weight" class="w-full p-3 border-2 border-gray-200 rounded-lg text-center text-lg input-focus" placeholder="예: 70" min="10" max="500" required>
+                    <button type="button" data-next="6" class="w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg btn-primary">다음</button>
+                </div>
+
+                <div id="step-6" class="survey-card hidden-card p-6 sm:p-8">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">개선하고 싶은 건강목표를 골라주세요</h2>
+                    <p class="text-gray-600 text-center mb-6">최소 3개, 최대 4개 (순위별 선택)</p>
+                    <div id="healthGoalsContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                        <!-- Health goals will be rendered here by JavaScript -->
+                    </div>
+                    <p id="goalSelectionError" class="text-red-500 text-center text-sm mb-4 hidden">최소 3개 이상의 건강 목표를 선택해주세요.</p>
+                    <button type="button" id="submitGoalsButton" class="w-full py-3 px-4 rounded-lg font-bold text-lg btn-primary" disabled>다음</button>
+                </div>
+
+                <!-- New Goal-specific question steps (dynamically populated) -->
+                <div id="step-7" class="survey-card hidden-card p-6 sm:p-8"></div>
+                <div id="step-8" class="survey-card hidden-card p-6 sm:p-8"></div>
+                <div id="step-9" class="survey-card hidden-card p-6 sm:p-8"></div>
+                <div id="step-10" class="survey-card hidden-card p-6 sm:p-8"></div>
+            </form>
+
+            <div id="result-container" class="survey-card hidden-card p-6 sm:p-8 text-center">
+                <h2 id="resultTitle" class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"></h2>
+                <div class="chart-container mb-4">
+                    <canvas id="bmiChart"></canvas>
+                    <div id="bmi-text-display" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span id="bmiValueText" class="text-4xl font-bold text-gray-800"></span>
+                        <span id="bmiCategoryText" class="text-lg font-semibold text-gray-600"></span>
+                    </div>
+                </div>
+                <!-- Recommendations will be inserted here dynamically -->
+                <div id="analysis" class="text-left bg-gray-50 p-4 rounded-lg mb-4">
+                    <p id="analysisText" class="text-gray-700"></p>
+                </div>
+                <div id="selectedGoalsSummary" class="text-left bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">선택하신 건강 목표:</h3>
+                    <ul id="goalsList" class="list-disc list-inside text-gray-700">
+                        <!-- Selected goals will be displayed here -->
+                    </ul>
+                </div>
+                <button type="button" id="restartButton" class="w-full mt-8 py-3 px-4 rounded-lg font-bold text-lg btn-secondary">다시 시작하기</button>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('healthForm');
+            const surveyContainer = document.getElementById('survey-container');
+            const resultContainer = document.getElementById('result-container');
+            const steps = Array.from(surveyContainer.querySelectorAll('.survey-card:not(#result-container)'));
+            const healthGoalsContainer = document.getElementById('healthGoalsContainer');
+            const goalSelectionError = document.getElementById('goalSelectionError');
+            const submitGoalsButton = document.getElementById('submitGoalsButton');
+            
+            let currentStep = 0;
+            const userData = {};
+            let bmiChartInstance = null;
+            const selectedHealthGoals = [];
+            let currentGoalQuestionIndex = 0;
+
+            const healthGoalsData = [
+                { id: 'blood_circulation', text: '혈관 및 혈액순환, 혈행', icon: 'fa-solid fa-heart-pulse' },
+                { id: 'gut_health', text: '장건강 및 소화', icon: 'fa-solid fa-bowl-food' },
+                { id: 'skin_health', text: '피부건강', icon: 'fa-solid fa-spa' },
+                { id: 'eye_health', text: '눈건강', icon: 'fa-solid fa-eye' },
+                { id: 'brain_memory', text: '두뇌건강 및 기억력', icon: 'fa-solid fa-brain' },
+                { id: 'fatigue_vitality', text: '피로감, 활력 및 지구력', icon: 'fa-solid fa-bolt' },
+                { id: 'immune_health', text: '면역건강', icon: 'fa-solid fa-shield-halved' },
+                { id: 'antioxidant_aging', text: '항산화 및 노화', icon: 'fa-solid fa-leaf' },
+                { id: 'blood_pressure', text: '혈압건강', icon: 'fa-solid fa-heart' },
+                { id: 'liver_health', text: '간건강', icon: 'fa-solid fa-apple-whole' },
+                { id: 'menopause', text: '여성갱년기', icon: 'fa-solid fa-venus', gender: 'female' },
+                { id: 'prostate_health', text: '전립선건강', icon: 'fa-solid fa-mars', gender: 'male' },
+                { id: 'stomach_health', text: '위건강', icon: 'stomach-health-icon' },
+                { id: 'sleep_health', text: '수면건강', icon: 'fa-solid fa-moon' },
+                { id: 'stress_relief', text: '스트레스, 긴장완화', icon: 'fa-solid fa-cloud-moon' },
+                { id: 'obesity_bodyfat', text: '비만 및 체지방', icon: 'fa-solid fa-weight-hanging' },
+                { id: 'blood_cholesterol', text: '혈중콜레스테롤', icon: 'fa-solid fa-droplet' },
+                { id: 'blood_sugar', text: '혈당', icon: 'fa-solid fa-vial' }
+            ];
+
+            const healthGoalQuestions = {
+                'blood_circulation': {
+                    question: '혈관 및 혈액순환과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '손발 끝이 자주 저려요',
+                        '얼굴이 창백해보인다는 이야기를 자주 들어요',
+                        '계단을 오르거나 운동 시에 가슴에 압박감이 자주 느껴져요',
+                        '가족중에 심근경색이나 뇌경색을 앓았던 사람이 있어요',
+                        '담배를 피워요',
+                        '잇몸이 붓고 피가 자주 나요',
+                        '해당되는 내용은 없지만 혈관과 혈액순환에 대한 걱정이 있어요'
+                    ]
+                },
+                'gut_health': {
+                    question: '장건강과 소화와 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '기름진 음식이나 야식을 주3회 이상 먹어요',
+                        '변비가 있어요',
+                        '설사나 묽은 변을 하루에 두번이상 보는 편이에요',
+                        '식후에 속이 더부룩하고 소화가 제대로 되지 않아요',
+                        '맵고 달고 짠 음식을 좋아하고 비만에 속한다고 생각해요',
+                        '해당되는 내용은 없지만 장건강과 소화에 대한 걱정이 있어요'
+                    ]
+                },
+                'skin_health': {
+                    question: '피부건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '피부가 자주 가렵고 두드러기나 염증이 자주 나요',
+                        '건선, 아토피 같은 알레르기 피부로 고생하고 있어요',
+                        '세안 후에 피부가 당기는 느낌이 강하고 피부가 건조한 편이에요',
+                        '화장이 잘 받지 않아요',
+                        '평소 혈색이 좋지 않다고 들어본 적이 많아요',
+                        '머리에 비듬이 많이 생기는 편이에요',
+                        '해당되는 내용은 없지만 피부건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'eye_health': {
+                    question: '눈건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '조그만 글씨가 흐릿하게 보여요',
+                        '스마트폰이나 PC를 오래보면 눈이 피곤해져서 사용하기가 힘들어요',
+                        '시야가 흐려지고 눈이 침침한 느낌이 자주 들어요',
+                        '눈이 건조하고 뻑뻑해서 가려운 느낌이 들어요',
+                        '어두워지면 시력이 저하되는 것 같아요',
+                        '해당되는 내용은 없지만 눈건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'brain_memory': {
+                    question: '두뇌건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '물건을 어디에 두었는지 자주 잊어버려요',
+                        '걷는 보폭이 좁아지고 걸음걸이가 느려졌어요',
+                        '알던 길도 찾는게 힘들어지고 머리속으로 지도를 그리는게 어려워요',
+                        '새로운일을 시작하면 이전에 하던 일을 잊어버려요',
+                        '같은 이야기를 반복한다는 이야기를 주변에서 많이 들어요',
+                        '두통이 자주 생겨요',
+                        '해당되는 내용은 없지만 두뇌건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'fatigue_vitality': {
+                    question: '피로감과 활력에 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '자고 일어나도 상쾌하지가 않아요',
+                        '집중력이 저하되고 의욕이 떨어져서 게을러져요',
+                        '무기력하고 식욕도 많이 떨어진것 같아요',
+                        '쉽게 잠이 드는게 어려워서 자주 뒤척여요',
+                        '뒷목과 어깨가 항상 뭉쳐있어요',
+                        '조금만 움직여도 근육통이 생겨요',
+                        '평소보다 운동시간이 길게 느껴져서 운동 시간이 줄어들고 있어요',
+                        '해당되는 내용은 없지만 만성피로에 대한 걱정이 있어요'
+                    ]
+                },
+                'immune_health': {
+                    question: '면역건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '감기, 독감 등이 자주 걸리고 환절기는 항상 그런 편이에요',
+                        '소시지나 햄같은 육가공품을 매우 좋아하는 편이에요',
+                        '스트레스를 자주 받는 편이고 해소하는데도 시간이 오래 걸리는 편이에요',
+                        '6시간 이상의 수면을 규칙적으로 하지 못해요',
+                        '장이 건강하지 못한 편이에요',
+                        '운동을 땀을 흘릴 정도로 주 1회 이상 하지 않아요',
+                        '해당되는 내용은 없지만 혈관과 혈액순환에 대한 걱정이 있어요'
+                    ]
+                },
+                'antioxidant_aging': {
+                    question: '항산화 및 노화와 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '상처회복에 갈수록 시간이 오래 걸려요',
+                        '멍이 쉽게 생겨요',
+                        '피부의 주름살이 유난히 많아진것 같아요',
+                        '유연성이 급격하게 떨어지고 있어요',
+                        '해당되는 내용은 없지만 항산화에 대한 관심과 노화에 대한 걱정이 있어요'
+                    ]
+                },
+                'blood_pressure': {
+                    question: '혈압건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '과체중이에요',
+                        '일주일에 30분이상 2회이상 운동을 하지 않아요',
+                        '짠음식과 고칼로리의 음식을 좋아해요',
+                        '스트레스를 심하게 받으면 심장이 더 빠르게 뛰어요',
+                        '해당되는 내용은 없지만 혈압건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'liver_health': {
+                    question: '간건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '갑자기 술이 약해진것 같고 술이 깨는데 시간이 이전보다 길어져요',
+                        '우측 상복부가 답답하고 불쾌한 느낌이 들어요',
+                        '최근 들어 배에 가스가 차거나 방귀가 자주 나와요',
+                        '일주일에 2회 이상의 음주를 하고 있으며 음주 시 소주 반병 이상을 마셔요',
+                        '아침에 일어나는게 힘들어지고 피로감과 권태감이 느껴져요',
+                        '해당되는 내용은 없지만 간건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'menopause': {
+                    question: '여성갱년기와 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '생리가 띠엄띠엄 불규칙해요',
+                        '안면홍조 현상 및 땀이 많아졌어요',
+                        '불면증이 생겼고 가슴이 두근거릴때가 많아요',
+                        '체중이 쉽게 증가되고 잘 빠지지 않아요',
+                        '머리카락이 부쩍 많이 빠지네요',
+                        '불안하고 우울한 감정이 자주 생겨요',
+                        '해당되는 내용은 없지만 여성갱년기에 대한 걱정이 있어요'
+                    ]
+                },
+                'prostate_health': {
+                    question: '전립선건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '평소 소변을 보고 난 뒤 소변이 남아있는것 같은 느낌이 있어요',
+                        '소변을 보고난 후 2시간 이내에 소변을 다시 보는 경우가 있어요',
+                        '한번 소변을 볼때 소변줄기가 여러 번 끊어진 경우가 많아져요',
+                        '평소 소변을 볼때 소변이 금방 나오지 않아서 아랫배에 힘을 주어야만 볼수 있어요',
+                        '잠을자다가 소변이 마려워 깨는 횟수가 늘고 있어요',
+                        '해당되는 내용은 없지만 전립선건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'stomach_health': {
+                    question: '위건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '식후에 속이 더부룩하고 소화가 제대로 되지 않아요',
+                        '명치 끝에 통증이 지속되요',
+                        '속쓰림이 반복되고 트림이 잦아요',
+                        '소화불량과 구역질이 자주 나요',
+                        '최근에 빈혈이 생기기 시작했어요',
+                        '해당되는 내용은 없지만 위건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'sleep_health': {
+                    question: '수면건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '잠들기 위해 술을 마시거나 수면제를 사서 먹어봤어요',
+                        '자다가 깨면 다시 잠들기가 어려워요',
+                        '잠자리에 드는데 30분 이상의 시간이 걸려요',
+                        '자는 도중에 두 세 차례 이상 잠을 깨곤해요',
+                        '점심이후에 정신이 없을 정도로 졸리는 경우가 종종 있어요',
+                        '꿈을 많이 꾸는 편이고 꿈 내용도 기억이 다 나는 편이에요',
+                        '해당되는 내용은 없지만 수면건강에 대한 관심과 걱정이 있어요'
+                    ]
+                },
+                'stress_relief': {
+                    question: '스트레스에 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '스트레스를 받으면 식욕이 저하되어 식사를 제대로 하지 못해요',
+                        '스트레스를 받으면 술, 담배 등을 과도하게 섭취하는 버릇이 있어요',
+                        '대인관계에서의 갈등, 대화의 어려움, 사회적 활동에 대한 피로감이 커요',
+                        '흥분, 답답함, 짜증 등의 감정적인 변화가 잦아요',
+                        '미래에 대한 불안, 자신에 대한 불확실성에 대한 생각이 많아요',
+                        '해당되는 내용은 없지만 스트레스 관리에 대한 걱정이 있어요'
+                    ]
+                },
+                'obesity_bodyfat': {
+                    question: '비만 및 체지방과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '하루 20분이상의 운동을 일주일에 한번도 안하고 있어요',
+                        '복부 비만이 늘어나도 있어요',
+                        '주 2회이상 야식을 먹어요',
+                        '식사가 불규칙해서 과식이나 폭식을 자주해요',
+                        '식사 후 후식을 하루에 한번은 먹는것 같아요',
+                        '포만감을 느꼈는데도 계속 먹어서 배부름에 괴로움을 느끼는 경우가 많아요',
+                        '해당되는 내용은 없지만 비만과 체중관리에 대한 걱정이 있어요'
+                    ]
+                },
+                'blood_cholesterol': {
+                    question: '콜레스테롤 건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '손목, 손, 팔 및 다리가 자주 부어요',
+                        '손과 발이 차가워지는 일이 많아요',
+                        '피부가 생기가 없고 창백하다는 이야기를 종종 들어요',
+                        '관절 주변이나 근육에 통증이 느껴져요',
+                        '튀김 및 고기를 즐겨먹지만 야채를 거의 섭취하지 않아요',
+                        '해당되는 내용은 없지만 콜레스테롤 건강에 대한 걱정이 있어요'
+                    ]
+                },
+                'blood_sugar': {
+                    question: '혈당 건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    options: [
+                        '습관적으로 단 음식 찾고 꼭 먹어요',
+                        '복부 및 옆구리살이 집중적으로 늘어났어요',
+                        '밥을 먹고 나면 매우 졸려서 힘들어요',
+                        '밥을 방금 먹었는데 곧 허기와 갈증이 느껴져요',
+                        '다이어트를 해도 살이 빠지지를 않아요',
+                        '허기가 느껴지기 시작하면 참을 수 없을 만큼 배가 고파져 허겁지겁 식사를 해요',
+                        '해당되는 내용은 없지만 혈당관리에 대한 걱정이 있어요'
+                    ]
+                }
+            };
+
+            const healthRecommendations = {
+                'blood_circulation': {
+                    title: '혈관 및 혈액순환, 혈행',
+                    content: `EPA 및 DHA 함유유지는 혈액의 과도한 응고작용을 조절, 혈액 흐름을 원활히 하는데 도움을 줄 수 있음.
+        EPA, DHA 란?
+        오메가3(EPA 및 DHA 함유유지)는 혈중 중성지질 개선과 혈행 개선에 도움을 줄 수 있는 EPA 성분과 뇌, 신경조직, 망막조직의 주요 부분인 DHA로 구성된 불포화지방산입니다. 인체에는 반드시 필요하지만 체내합성이 어렵기 때문에 반드시 외부로부터 섭취가 필요한 성분입니다.`
+                },
+                'gut_health': {
+                    title: '장건강 및 소화',
+                    content: `프로바이오틱스는 유산균 증식 및 유해균 억제, 배변활동 원활, 장건강에 도움을 줄 수 있음.
+        프로바이오틱스는 배변활동에 어려움을 느끼거나, 장건강이 걱정되시는 분, 운동 부족이나 불규칙한 생활습관으로 배변이 원활하지 않은 분, 잘못된 식습관으로 장건강 관리가 필요하신 분, 잦은 다이어트로 장 기능이 저하되신 분들에게 필요한 성분입니다`
+                },
+                'skin_health': {
+                    title: '피부건강',
+                    content: `히알루론산은 피부보습에 도움을 줄 수 있음.
+        히알루론산은 건조한 환경에서 시간을 오래 보내시는 분, 밸런스가 무너진 피부를 건강하게 가꾸고 싶으신 분, 간편하게 피부 보습과 피부 건강을 지키고자 하시는 분, 건강하고 빛나는 피부를 원하시는 분, 속부터 촉촉하고 부드러운 피부를 원하시는 분들에게 필요한 성분입니다.`
+                },
+                'eye_health': {
+                    title: '눈건강',
+                    content: `마리골드꽃 추출물은 노화로 인해 감소될 수 있는 황반색소밀도를 유지하여 눈건강에 도움을 줄 수 있음
+        루테인으로 알려진 마리골드꽃 추출물은 눈의 보호와 눈의 영양공급에 도움이 되며 눈의 망막과 황반의 구성성분으로 되어 있습니다. 인체 내에서 합성되지 않아 섭취를 통하여 필요한 성분입니다.`
+                },
+                'brain_memory': {
+                    title: '두뇌건강 및 기억력',
+                    content: `EPA 및 DHA 함유유지는 기억력 개선에 도움을 줄 수 있음
+        EPA, DHA 란?
+        오메가3(EPA 및 DHA 함유유지)는 혈중 중성지질 개선과 혈행 개선에 도움을 줄 수 있는 EPA 성분과 뇌, 신경조직, 망막조직의 주요 부분인 DHA로 구성된 불포화지방산입니다. 인체에는 반드시 필요하지만 체내합성이 어렵기 때문에 반드시 외부로부터 섭취가 필요한 성분입니다.`
+                },
+                'fatigue_vitality': {
+                    title: '피로감, 활력 및 지구력',
+                    content: `옥타코사놀 함유 유지는 지구력 증진에 도움을 줄 수 있음.
+        철새의 에너지원으로 알려진 옥타코사놀은 사탕수수, 소맥배아 등에서 추출한 성분으로 식약처로부터 지구력 증진에 도움을 줄 수 있다는 기능성을 인정받은 원료입니다.`
+                },
+                'immune_health': {
+                    title: '면역건강',
+                    content: `아연은 정상적인 면역기능에 필요하며 정상적인 세포분열에 필요.
+        아연은 모든 세포에 존재하며, 생체 내 200개가 넘는 효소의 구성성분으로 체내 주요한 대사과정이나 반응 조절과 같은 생체반응에 관여합니다.
+        특히, 아연은 면역체계나 세포교체가 빠른 체내 거의 모든 조직에 존재하며 DNA, RNA 같은 핵산의 합성, 단백질 대사, 체내 성장과 발달 등에 필요합니다.`
+                },
+                'antioxidant_aging': {
+                    title: '항산화 및 노화',
+                    content: `토마토 추출물은 항산화에 도움을 줄 수 있음.
+        라이코펜은 카로티노이드 계열의 물질로서 빨갛게 익은 토마토에 많이 함유되어 있습니다. 토마토추출물의 라이코펜 성분은 항산화에 도움을 줄 수 있음의 기능성을 식약처에서 인정 받았습니다.`
+                },
+                'blood_pressure': {
+                    title: '혈압건강',
+                    content: `EPA 및 DHA 함유유지는 혈액의 과도한 응고작용을 조절, 혈액 흐름을 원활히 하는데 도움을 줄 수 있음.
+        EPA, DHA 란?
+        오메가3(EPA 및 DHA 함유유지)는 혈중 중성지질 개선과 혈행 개선에 도움을 줄 수 있는 EPA 성분과 뇌, 신경조직, 망막조직의 주요 부분인 DHA로 구성된 불포화지방산입니다. 인체에는 반드시 필요하지만 체내합성이 어렵기 때문에 반드시 외부로부터 섭취가 필요한 성분입니다.`
+                },
+                'liver_health': {
+                    title: '간건강',
+                    content: `밀크시슬 추출물은 간건강에 도움을 줄 수 있음.
+        밀크시슬은 엉겅퀴라고 불리며 유럽에서 약 2,000년 전부터 간 건강을 위해 섭취해오던 식물로 식약처로부터 "간 건강에 도움을 줄 수 있음＂으로 기능성을 인정받은 건강기능식품입니다. 회식과 야근이 잦은 직장인, 과중한 업무로 간이 피곤하신 분, 불규칙한 생활로 간이 피로한 분들에게 필요한 성분입니다.`
+                },
+                'menopause': {
+                    title: '여성갱년기',
+                    content: `회화나무열매 추출물은 갱년기 여성의 건강에 도움을 줄 수 있음.
+        회화나무열매추출물에는 소포리코사이드라는 성분이 다량 함유되어 있으며, 소포리코사이드는 이소플라본 계열로 생리활성이 강한 것으로 알려져 있습니다.
+        에스트로겐 분자구조와 유사한 소포리코사이드가 여성 호르몬이 감소되어 갱년기 관리 및 활력있는 중년 생활을 원하시는 분들에게 필요한 성분입니다.`
+                },
+                'prostate_health': {
+                    title: '전립선건강',
+                    content: `쏘팔메토 추출물은 전립선 건강의 유지에 도움을 줄 수 있음
+        쏘팔메토 열매는 대서양 해안에서 자생하는 톱 야자수의 열매로 북미인디언들의 전립선 건강을 위하여 사용하여 왔으며 현재는 전립선 건강 소재로 유럽과 미국을 중심으로 널리 사용되었습니다. 쏘팔메토 열매추출물에 함유된 성분인 로스산은 전립선 건강의 유지에 도움을 줄 수 있음으로 식약처 기능성을 인정받은 소재 입니다.`
+                },
+                'stomach_health': {
+                    title: '위건강',
+                    content: `꾸지뽕잎 추출물은 위 불편감 개선에 도움을 줄 수 있음.
+        꾸지뽕은 굿가시나무라고도 불리며 뽕나무과의 나무로 동의보감에도
+        기록된 유서 깊은 전통 건강원료입니다. 특히, 잎에 위 건강을 위한 핵심성분인 루틴을 풍부하게 함유하고 있어 꾸지뽕잎 추출물은 식약처로 부터 위 건강 기능성 원료로 인정받은 바 있습니다. 반복적인 위 불편감으로 고민하시는 분, 위 불편감이 없는 편안한 하루를 원하시는분께 필요한 성분입니다.`
+                },
+                'sleep_health': {
+                    title: '수면건강',
+                    content: `홍경천 추출물은 스트레스로 인한 피로 개선에 도움을 줄 수 있음.
+        유럽에서 약 3,000년 전부터 사용해온 전통원료로 고산지대에서 강한 생체방어물질을 축적하며 자란 홍경천은 중국에서는 신비한 황금 뿌리로 불렸으며 중국 황제들은 이 황금빛 뿌리를 중국으로 가져오기 위해 시베리아로 특별원정대를 보냈다는 기록도 있습니다. 식약처로부터 스트레스로 인한 피로 개선에 도움을 줄 수 있다는 기능성을 인정받았습니다.`
+                },
+                'stress_relief': {
+                    title: '스트레스, 긴장완화',
+                    content: `홍경천 추출물은 스트레스로 인한 피로 개선에 도움을 줄 수 있음.
+        유럽에서 약 3,000년 전부터 사용해온 전통원료로 고산지대에서 강한 생체방어물질을 축적하며 자란 홍경천은 중국에서는 신비한 황금 뿌리로 불렸으며 중국 황제들은 이 황금빛 뿌리를 중국으로 가져오기 위해 시베리아로 특별원정대를 보냈다는 기록도 있습니다. 식약처로부터 스트레스로 인한 피로 개선에 도움을 줄 수 있다는 기능성을 인정받았습니다.`
+                },
+                'obesity_bodyfat': {
+                    title: '비만 및 체지방',
+                    content: `녹차추출물은 항산화, 체지방 감소, 혈중 콜레스테롤 개선에 도움을 줄 수 있음.
+        녹차추출물 카테킨은 녹차로부터 추출한 100% 식물성 다이어트 기능성원료입니다. 핵심성분 카테킨을 풍부하게 함유하고 있어 식약처로부터 체지방 감소는 물론 혈중 콜레스테롤 개선과 항산화에도 도움을 줄 수 있다는 3중 기능성을 인정받은 성분입니다.`
+                },
+                'blood_cholesterol': {
+                    title: '혈중콜레스테롤',
+                    content: `녹차추출물은 항산화, 체지방 감소, 혈중 콜레스테롤 개선에 도움을 줄 수 있음.
+        녹차추출물 카테킨은 녹차로부터 추출한 100% 식물성 다이어트 기능성원료입니다. 핵심성분 카테킨을 풍부하게 함유하고 있어 식약처로부터 체지방 감소는 물론 혈중 콜레스테롤 개선과 항산화에도 도움을 줄 수 있다는 3중 기능성을 인정받은 성분입니다.`
+                },
+                'blood_sugar': {
+                    title: '혈당',
+                    content: `바나바잎 추출물은 식후 혈당상승 억제에 도움을 줄 수 있음.
+        바나바는 열대, 아열대 지방에서 자생하는 다년생 상록수로 바나바잎에 풍부하게 함유되어 있는 코로솔산은 식후 혈당상승 억제에 도움을 줄 수 있습니다. 쌀밥, 면 요리 등 탄수화물 섭취가 많은 분, 혈당케어를 위해 식단관리를 하는 분, 식사때마다 혈당 상승이 신경 쓰이는 분들에게 필요한 성분입니다.`
+                }
+            };
+
+            const updateYearMax = () => {
+                const currentYear = new Date().getFullYear();
+                document.getElementById('birthYear').max = currentYear;
+            };
+
+            const navigateToStep = (stepIndex) => {
+                steps.forEach((step, index) => {
+                    if (index === stepIndex) {
+                        step.classList.remove('hidden-card');
+                        step.classList.add('visible-card');
+                    } else {
+                        step.classList.remove('visible-card');
+                        step.classList.add('hidden-card');
+                    }
+                });
+                currentStep = stepIndex;
+
+                if (currentStep === 6) {
+                    renderHealthGoals();
+                    updateGoalSelectionButtonState();
+                } else if (currentStep >= 7 && currentStep < (7 + userData.selectedGoals.length)) {
+                    renderGoalQuestion(currentGoalQuestionIndex);
+                }
+            };
+
+            const validateStep = (stepIndex) => {
+                const stepElement = steps[stepIndex];
+                const inputs = stepElement.querySelectorAll('input[required]');
+                for (const input of inputs) {
+                    if (!input.checkValidity()) {
+                        input.reportValidity();
+                        return false;
+                    }
+                }
+                return true;
+            };
+
+            const personalizeMessages = () => {
+                userData.name = document.getElementById('userName').value;
+                document.getElementById('welcomeMessage').textContent = `반갑습니다, ${userData.name}님.`;
+                document.getElementById('genderQuestion').textContent = `${userData.name}님의 성별을 알려주세요.`;
+                document.getElementById('heightQuestion').textContent = `${userData.name}님의 키를 입력해주세요.`;
+                document.getElementById('weightQuestion').textContent = `${userData.name}님의 몸무게를 입력해주세요.`;
+            };
+
+            const renderHealthGoals = () => {
+                healthGoalsContainer.innerHTML = ''; // Clear previous goals
+                const userGender = userData.gender;
+
+                const filteredGoals = healthGoalsData.filter(goal => {
+                    if (goal.gender) {
+                        return goal.gender === userGender;
+                    }
+                    return true;
+                });
+
+                filteredGoals.forEach(goal => {
+                    const goalItem = document.createElement('div');
+                    goalItem.className = 'health-goal-item';
+                    goalItem.dataset.goalId = goal.id;
+                    
+                    const isSelected = selectedHealthGoals.includes(goal.id);
+                    if (isSelected) {
+                        goalItem.classList.add('selected');
+                        const rank = selectedHealthGoals.indexOf(goal.id) + 1;
+                        goalItem.innerHTML = `<span class="health-goal-rank">${rank}</span><i class="${goal.icon} icon"></i><span class="text">${goal.text}</span>`;
+                    } else {
+                        goalItem.innerHTML = `<i class="${goal.icon} icon"></i><span class="text">${goal.text}</span>`;
+                    }
+
+                    goalItem.addEventListener('click', () => toggleHealthGoal(goal.id));
+                    healthGoalsContainer.appendChild(goalItem);
+                });
+            };
+
+            const toggleHealthGoal = (goalId) => {
+                const index = selectedHealthGoals.indexOf(goalId);
+                if (index > -1) {
+                    // Already selected, unselect it
+                    selectedHealthGoals.splice(index, 1);
+                } else {
+                    // Not selected, select it if less than 4 are selected
+                    if (selectedHealthGoals.length < 4) {
+                        selectedHealthGoals.push(goalId);
+                    } else {
+                        // Optionally, alert user they can only select 4
+                        // alert('최대 4개의 건강 목표만 선택할 수 있습니다.'); // Using alert is discouraged in Canvas
+                        // Instead, we can visually indicate or prevent selection.
+                        return; // Prevent selection if already 4
+                    }
+                }
+                renderHealthGoals(); // Re-render to update selection states and ranks
+                updateGoalSelectionButtonState();
+            };
+
+            const updateGoalSelectionButtonState = () => {
+                if (selectedHealthGoals.length >= 3) {
+                    submitGoalsButton.disabled = false;
+                    goalSelectionError.classList.add('hidden');
+                } else {
+                    submitGoalsButton.disabled = true;
+                    goalSelectionError.classList.remove('hidden');
+                }
+            };
+
+            const renderGoalQuestion = (goalIndex) => {
+                const goalId = userData.selectedGoals[goalIndex];
+                const questionData = healthGoalQuestions[goalId];
+                if (!questionData) {
+                    console.error('Question data not found for goal:', goalId);
+                    return;
+                }
+
+                const currentGoalStepElement = document.getElementById(`step-${7 + goalIndex}`);
+                currentGoalStepElement.innerHTML = `
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 text-center">${questionData.question}</h2>
+                    <div class="space-y-3 mb-6">
+                        ${questionData.options.map((option, idx) => `
+                            <div class="flex items-center">
+                                <input type="checkbox" id="goal-${goalId}-option-${idx}" name="goal-${goalId}-option" value="${option}" class="w-5 h-5 mr-3 radio-checked">
+                                <label for="goal-${goalId}-option-${idx}" class="text-lg text-gray-700">${option}</label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p id="goalQuestionError-${goalId}" class="text-red-500 text-center text-sm mb-4 hidden">최소 1개 이상의 항목을 선택해주세요.</p>
+                    <button type="button" class="w-full mt-6 py-3 px-4 rounded-lg font-bold text-lg btn-primary" data-goal-next="${goalIndex + 1}">${goalIndex < userData.selectedGoals.length - 1 ? '다음' : '결과 확인하기'}</button>
+                `;
+                // Add event listener for the dynamically created button
+                currentGoalStepElement.querySelector('button[data-goal-next]').addEventListener('click', handleGoalQuestionNext);
+            };
+
+            const handleGoalQuestionNext = (e) => {
+                const currentGoalId = userData.selectedGoals[currentGoalQuestionIndex];
+                const checkboxes = document.querySelectorAll(`input[name="goal-${currentGoalId}-option"]:checked`);
+                const errorElement = document.getElementById(`goalQuestionError-${currentGoalId}`);
+
+                if (checkboxes.length === 0) {
+                    errorElement.classList.remove('hidden');
+                    return;
+                } else {
+                    errorElement.classList.add('hidden');
+                }
+
+                // Store selected answers (optional, but good for data collection)
+                userData.goalAnswers = userData.goalAnswers || {};
+                userData.goalAnswers[currentGoalId] = Array.from(checkboxes).map(cb => cb.value);
+
+                currentGoalQuestionIndex++;
+                if (currentGoalQuestionIndex < userData.selectedGoals.length) {
+                    navigateToStep(7 + currentGoalQuestionIndex);
+                } else {
+                    showResults();
+                }
+            };
+
+            document.getElementById('startButton').addEventListener('click', () => {
+                navigateToStep(1);
+            });
+
+            surveyContainer.addEventListener('click', (e) => {
+                if (e.target.matches('button[data-next]')) {
+                    if (validateStep(currentStep)) {
+                        if (currentStep === 1) {
+                            personalizeMessages();
+                        }
+                        // Capture gender when moving from step 3
+                        if (currentStep === 3) {
+                            userData.gender = document.querySelector('input[name="gender"]:checked').value;
+                        }
+                        const nextStepIndex = parseInt(e.target.dataset.next, 10);
+                        navigateToStep(nextStepIndex);
+                    }
+                }
+            });
+
+            submitGoalsButton.addEventListener('click', () => {
+                if (selectedHealthGoals.length < 3) {
+                    goalSelectionError.classList.remove('hidden');
+                    return;
+                } else {
+                    goalSelectionError.classList.add('hidden');
+                }
+
+                // Capture remaining user data if not already captured
+                userData.birthYear = document.getElementById('birthYear').value;
+                userData.height = parseFloat(document.getElementById('height').value);
+                userData.weight = parseFloat(document.getElementById('weight').value);
+                userData.selectedGoals = [...selectedHealthGoals]; // Store a copy
+
+                currentGoalQuestionIndex = 0;
+                navigateToStep(7 + currentGoalQuestionIndex); // Navigate to the first goal question
+            });
+            
+            document.getElementById('restartButton').addEventListener('click', () => {
+                form.reset();
+                if (bmiChartInstance) {
+                    bmiChartInstance.destroy();
+                }
+                selectedHealthGoals.length = 0; // Clear selected goals
+                userData.selectedGoals = []; // Also clear from userData
+                userData.goalAnswers = {}; // Clear goal answers
+                currentGoalQuestionIndex = 0; // Reset goal question index
+
+                // Remove dynamically added recommendations container if it exists
+                const existingRecommendations = resultContainer.querySelector('.recommendations-container');
+                if (existingRecommendations) {
+                    existingRecommendations.remove();
+                }
+
+                resultContainer.classList.add('hidden-card');
+                resultContainer.classList.remove('visible-card');
+                form.style.display = 'block';
+                navigateToStep(0);
+            });
+
+            const calculateBMI = (weight, height) => {
+                const heightInMeters = height / 100;
+                const bmi = weight / (heightInMeters * heightInMeters);
+                return Math.round(bmi * 10) / 10;
+            };
+
+            const getBMICategoryAndAnalysis = (bmi, name) => {
+                let category, analysis, color;
+                // KSSO (WHO Asia-Pacific) BMI categories
+                if (bmi < 18.5) {
+                    category = '저체중';
+                    analysis = `${name}님은 저체중 범위에 속합니다. 균형 잡힌 식단을 통해 건강하게 체중을 늘리는 것을 고려해볼 수 있습니다. 영양가 있는 음식 섭취와 함께 꾸준한 근력 운동은 근육량을 늘리고 건강을 증진시키는 데 도움이 됩니다.`;
+                    color = '#60a5fa'; // blue-400
+                } else if (bmi >= 18.5 && bmi <= 22.9) {
+                    category = '정상 체중';
+                    analysis = `축하합니다, ${name}님! 건강한 정상 체중 범위에 속해 있습니다. 현재의 건강한 생활 습관을 유지하는 것이 중요합니다. 균형 잡힌 식단과 규칙적인 신체 활동을 계속 실천하여 건강을 지켜나가세요.`;
+                    color = '#4ade80'; // green-400
+                } else if (bmi >= 23 && bmi <= 24.9) {
+                    category = '과체중';
+                    analysis = `${name}님은 과체중 범위에 속합니다. 생활 습관을 조금만 개선해도 건강에 큰 변화를 가져올 수 있습니다. 식단 조절과 유산소 운동을 통해 점진적으로 체중을 관리하는 것을 권장합니다.`;
+                    color = '#facc15'; // yellow-400
+                } else if (bmi >= 25 && bmi <= 29.9) {
+                    category = '경도 비만';
+                    analysis = `${name}님은 경도 비만 범위에 속합니다. 건강 관리에 주의가 필요한 시점입니다. 심장병, 고혈압 등 만성 질환의 위험을 낮추기 위해 적극적인 식단 관리와 꾸준한 운동을 시작하는 것이 좋습니다. 전문가와 상담하는 것도 좋은 방법입니다.`;
+                    color = '#fb923c'; // orange-400
+                } else { // bmi >= 30
+                    category = '고도 비만';
+                    analysis = `${name}님은 고도 비만으로, 건강 위험도가 높은 상태입니다. 혼자서 관리하기 어려울 수 있으니, 의사나 영양사와 같은 전문가의 도움을 받아 체계적인 체중 감량 계획을 세우는 것이 매우 중요합니다.`;
+                    color = '#f87171'; // red-400
+                }
+                return { category, analysis, color };
+            };
+
+            const renderBMIChart = (bmi, color) => {
+                const ctx = document.getElementById('bmiChart').getContext('2d');
+                const data = {
+                    datasets: [{
+                        // KSSO ranges: <18.5, 18.5-22.9, 23-24.9, 25-29.9, >=30
+                        // Segment sizes for a 180-degree gauge (total range 0-40 BMI)
+                        data: [18.5, 4.5, 2, 5, 10], // 18.5 (underweight), 4.5 (normal 18.5-22.9), 2 (overweight 23-24.9), 5 (obese 25-29.9), 10 (highly obese >=30, extended range for visualization)
+                        backgroundColor: ['#60a5fa', '#4ade80', '#facc15', '#fb923c', '#f87171'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270, // Start from bottom left
+                    }]
+                };
+
+                // Adjust needle position based on BMI value relative to the chart's max range (e.g., 40)
+                const needleValue = Math.min(bmi, 40); // Cap BMI at 40 for chart display
+                const totalValue = 40; // Max value on the gauge
+                const angle = 180 * (needleValue / totalValue); // Angle in degrees for 180-degree arc
+
+                const needle = {
+                    id: 'needle',
+                    afterDatasetDraw(chart) {
+                        const { ctx } = chart;
+                        ctx.save();
+                        // Get center coordinates of the chart area
+                        const xCenter = chart.getDatasetMeta(0).data[0].x;
+                        const yCenter = chart.getDatasetMeta(0).data[0].y;
+                        
+                        ctx.translate(xCenter, yCenter);
+                        // Rotate the needle based on the calculated angle. Chart's rotation is 270 (starts at 6 o'clock), 
+                        // so 0 degrees for needle means pointing left (start of gauge).
+                        // We need to rotate by `angle` from the starting point of the gauge (which is 270 degrees or -90 degrees from top).
+                        // Since the chart is rotated 270, 0 degrees on the gauge corresponds to the left.
+                        // So, we just rotate by the calculated angle.
+                        ctx.rotate(Math.PI * (angle / 180)); 
+                        ctx.beginPath();
+                        ctx.moveTo(0, -5); // Top point of needle base
+                        ctx.lineTo(chart.chartArea.height / 2 - 10, 0); // Tip of the needle (length based on chart height)
+                        ctx.lineTo(0, 5); // Bottom point of needle base
+                        ctx.fillStyle = '#1f2937'; // Dark gray for needle
+                        ctx.fill();
+                        ctx.restore();
+                        
+                        // Draw the central circle for the needle base
+                        ctx.beginPath();
+                        ctx.arc(xCenter, yCenter, 8, 0, 2 * Math.PI);
+                        ctx.fillStyle = '#1f2937'; // Dark gray for needle base
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                };
+
+                bmiChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            tooltip: { enabled: false },
+                            legend: { display: false }
+                        }
+                    },
+                    plugins: [needle]
+                });
+            };
+
+            const showResults = () => {
+                const bmi = calculateBMI(userData.weight, userData.height);
+                const { category, analysis, color } = getBMICategoryAndAnalysis(bmi, userData.name);
+
+                document.getElementById('resultTitle').textContent = `${userData.name}님의 건강분석 결과 입니다.`;
+                
+                // Recommendations section
+                const recommendationsContainer = document.createElement('div');
+                recommendationsContainer.className = 'recommendations-container text-left bg-gray-50 p-4 rounded-lg mb-4';
+                recommendationsContainer.innerHTML = '<h3 class="text-lg font-bold text-gray-800 mb-2">맞춤형 건강기능식품 추천:</h3>';
+                
+                userData.selectedGoals.forEach(goalId => {
+                    const recommendation = healthRecommendations[goalId];
+                    if (recommendation) {
+                        const recDiv = document.createElement('div');
+                        recDiv.className = 'mb-4 last:mb-0';
+                        recDiv.innerHTML = `<h4 class="font-semibold text-md text-gray-700">${recommendation.title}</h4><p class="text-gray-600 text-sm whitespace-pre-wrap">${recommendation.content}</p>`;
+                        recommendationsContainer.appendChild(recDiv);
+                    }
+                });
+                
+                // Insert recommendations before BMI analysis
+                const analysisContainer = document.getElementById('analysis');
+                analysisContainer.parentNode.insertBefore(recommendationsContainer, analysisContainer);
+
+                document.getElementById('bmiValueText').textContent = bmi;
+                document.getElementById('bmiCategoryText').textContent = category;
+                document.getElementById('bmiCategoryText').style.color = color;
+                document.getElementById('analysisText').textContent = analysis;
+
+                // Display selected health goals (already there, just ensure it's correct)
+                const goalsList = document.getElementById('goalsList');
+                goalsList.innerHTML = '';
+                if (userData.selectedGoals && userData.selectedGoals.length > 0) {
+                    userData.selectedGoals.forEach((goalId, index) => {
+                        const goal = healthGoalsData.find(g => g.id === goalId);
+                        if (goal) {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${index + 1}순위: ${goal.text}`;
+                            goalsList.appendChild(listItem);
+                        }
+                    });
+                } else {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = '선택된 건강 목표가 없습니다.';
+                    goalsList.appendChild(listItem);
+                }
+
+
+                if (bmiChartInstance) {
+                    bmiChartInstance.destroy();
+                }
+                renderBMIChart(bmi, color);
+
+                form.style.display = 'none';
+                resultContainer.classList.remove('hidden-card');
+                resultContainer.classList.add('visible-card');
+            };
+
+            updateYearMax();
+        });
+    </script>
+</body>
+</html>
