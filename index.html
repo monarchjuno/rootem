@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome 6 최신 버전 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <style>
         body {
@@ -90,7 +90,7 @@
             position: relative;
             background-color: #fff;
             text-align: center;
-            min-height: 120px;
+            min-height: 120px; /* Ensure consistent height */
         }
        .health-goal-item:hover {
             border-color: #A79277;
@@ -125,16 +125,6 @@
             justify-content: center;
             font-size: 0.75rem;
             font-weight: bold;
-        }
-        
-        /* 위건강 아이콘 특별 스타일 */
-        .stomach-health-icon {
-            font-family: "Font Awesome 6 Free" !important;
-            font-weight: 900 !important;
-        }
-        
-        .stomach-health-icon::before {
-            content: "\f965" !important; /* stomach 아이콘 */
         }
     </style>
 </head>
@@ -212,6 +202,7 @@
 
             <div id="result-container" class="survey-card hidden-card p-6 sm:p-8 text-center">
                 <h2 id="resultTitle" class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4"></h2>
+                <p id="assumCodeMessage" class="text-xl sm:text-2xl font-bold text-indigo-700 mb-4"></p>
                 <div class="chart-container mb-4">
                     <canvas id="bmiChart"></canvas>
                     <div id="bmi-text-display" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -229,7 +220,8 @@
                         <!-- Selected goals will be displayed here -->
                     </ul>
                 </div>
-                <button type="button" id="restartButton" class="w-full mt-8 py-3 px-4 rounded-lg font-bold text-lg btn-secondary">다시 시작하기</button>
+                <button type="button" id="buyNowButton" class="w-full mt-8 py-3 px-4 rounded-lg font-bold text-lg btn-primary">지금 구매하러 가기</button>
+                <button type="button" id="restartButton" class="w-full mt-4 py-3 px-4 rounded-lg font-bold text-lg btn-secondary">다시 시작하기</button>
             </div>
             
         </div>
@@ -244,12 +236,13 @@
             const healthGoalsContainer = document.getElementById('healthGoalsContainer');
             const goalSelectionError = document.getElementById('goalSelectionError');
             const submitGoalsButton = document.getElementById('submitGoalsButton');
+            const assumCodeMessage = document.getElementById('assumCodeMessage');
             
             let currentStep = 0;
             const userData = {};
             let bmiChartInstance = null;
-            const selectedHealthGoals = [];
-            let currentGoalQuestionIndex = 0;
+            const selectedHealthGoals = []; // Stores IDs of selected goals in order of selection
+            let currentGoalQuestionIndex = 0; // Track which goal's question is currently displayed
 
             const healthGoalsData = [
                 { id: 'blood_circulation', text: '혈관 및 혈액순환, 혈행', icon: 'fa-solid fa-heart-pulse' },
@@ -264,7 +257,7 @@
                 { id: 'liver_health', text: '간건강', icon: 'fa-solid fa-apple-whole' },
                 { id: 'menopause', text: '여성갱년기', icon: 'fa-solid fa-venus', gender: 'female' },
                 { id: 'prostate_health', text: '전립선건강', icon: 'fa-solid fa-mars', gender: 'male' },
-                { id: 'stomach_health', text: '위건강', icon: 'stomach-health-icon' },
+                { id: 'stomach_health', text: '위건강', icon: 'fa-solid fa-stomach' },
                 { id: 'sleep_health', text: '수면건강', icon: 'fa-solid fa-moon' },
                 { id: 'stress_relief', text: '스트레스, 긴장완화', icon: 'fa-solid fa-cloud-moon' },
                 { id: 'obesity_bodyfat', text: '비만 및 체지방', icon: 'fa-solid fa-weight-hanging' },
@@ -468,7 +461,7 @@
                     ]
                 },
                 'blood_sugar': {
-                    question: '혈당 건강과 관련하여 해당되는 것을 선택해주세요 (중복선택 가능)',
+                    question: '혈당 건강과 관련하여 해당되는 것을 선택해주세요 (중복선위택 가능)',
                     options: [
                         '습관적으로 단 음식 찾고 꼭 먹어요',
                         '복부 및 옆구리살이 집중적으로 늘어났어요',
@@ -534,7 +527,7 @@
                 'liver_health': {
                     title: '간건강',
                     content: `밀크시슬 추출물은 간건강에 도움을 줄 수 있음.
-        밀크시슬은 엉겅퀴라고 불리며 유럽에서 약 2,000년 전부터 간 건강을 위해 섭취해오던 식물로 식약처로부터 "간 건강에 도움을 줄 수 있음＂으로 기능성을 인정받은 건강기능식품입니다. 회식과 야근이 잦은 직장인, 과중한 업무로 간이 피곤하신 분, 불규칙한 생활로 간이 피로한 분들에게 필요한 성분입니다.`
+        밀크시슬은 엉겅퀴라고 불리며 유럽에서 약 2,000년 전부터 간 건강을 위해 섭취해오던 식물로 식약처로부터 “간 건강에 도움을 줄 수 있음＂으로 기능성을 인정받은 건강기능식품입니다. 회식과 야근이 잦은 직장인, 과중한 업무로 간이 피곤하신 분, 불규칙한 생활로 간이 피로한 분들에게 필요한 성분입니다.`
                 },
                 'menopause': {
                     title: '여성갱년기',
@@ -578,6 +571,28 @@
                     content: `바나바잎 추출물은 식후 혈당상승 억제에 도움을 줄 수 있음.
         바나바는 열대, 아열대 지방에서 자생하는 다년생 상록수로 바나바잎에 풍부하게 함유되어 있는 코로솔산은 식후 혈당상승 억제에 도움을 줄 수 있습니다. 쌀밥, 면 요리 등 탄수화물 섭취가 많은 분, 혈당케어를 위해 식단관리를 하는 분, 식사때마다 혈당 상승이 신경 쓰이는 분들에게 필요한 성분입니다.`
                 }
+            };
+
+            // New mapping for health goals to codes
+            const healthGoalCodes = {
+                'blood_circulation': 'D',
+                'gut_health': 'A',
+                'skin_health': 'D',
+                'eye_health': 'B',
+                'brain_memory': 'D',
+                'fatigue_vitality': 'B',
+                'immune_health': 'A',
+                'antioxidant_aging': 'F',
+                'blood_pressure': 'D',
+                'liver_health': 'B',
+                'menopause': 'C',
+                'prostate_health': 'E',
+                'stomach_health': 'G',
+                'sleep_health': 'J',
+                'stress_relief': 'A',
+                'obesity_bodyfat': 'F',
+                'blood_cholesterol': 'F',
+                'blood_sugar': 'I'
             };
 
             const updateYearMax = () => {
@@ -788,6 +803,10 @@
                 if (existingRecommendations) {
                     existingRecommendations.remove();
                 }
+                 // Clear the assumCodeMessage and remove color class
+                assumCodeMessage.textContent = '';
+                assumCodeMessage.classList.remove('text-indigo-700');
+
 
                 resultContainer.classList.add('hidden-card');
                 resultContainer.classList.remove('visible-card');
@@ -902,6 +921,30 @@
 
                 document.getElementById('resultTitle').textContent = `${userData.name}님의 건강분석 결과 입니다.`;
                 
+                // Generate and display the Assum Code
+                const uniqueCodes = new Set();
+                userData.selectedGoals.forEach(goalId => {
+                    const code = healthGoalCodes[goalId];
+                    if (code) {
+                        uniqueCodes.add(code);
+                    }
+                });
+                const sortedCodes = Array.from(uniqueCodes).sort().join('');
+                const codeCount = uniqueCodes.size;
+                const codeUnit = codeCount === 1 ? '알' : '알'; // "한알", "두알", "세알", "네알"
+                let codeCountKorean;
+                switch (codeCount) {
+                    case 1: codeCountKorean = '한'; break;
+                    case 2: codeCountKorean = '두'; break;
+                    case 3: codeCountKorean = '세'; break;
+                    case 4: codeCountKorean = '네'; break;
+                    default: codeCountKorean = '';
+                }
+
+                assumCodeMessage.textContent = `어쎔코드 ${sortedCodes} ${codeCountKorean}${codeUnit}로 당신의 건강을 업그레이드 하세요.`;
+                assumCodeMessage.classList.add('text-indigo-700'); // Apply the new color class
+
+
                 // Recommendations section
                 const recommendationsContainer = document.createElement('div');
                 recommendationsContainer.className = 'recommendations-container text-left bg-gray-50 p-4 rounded-lg mb-4';
